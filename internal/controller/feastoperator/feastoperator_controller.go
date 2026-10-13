@@ -111,7 +111,7 @@ func NewReconciler(
 			reconciler.WithEventHandler(
 				handlers.ToNamed(componentApi.FeastOperatorInstanceName)),
 			reconciler.WithPredicates(
-				resources.CreatedOrUpdatedOrDeletedNamed(platformConfigCMName)),
+				resources.CreatedOrUpdatedOrDeletedNamed(PlatformConfigCMName)),
 		).
 		WithAction(m.initialize).
 		WithAction(m.upgradeIfNeeded).

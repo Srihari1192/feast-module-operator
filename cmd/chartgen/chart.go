@@ -37,6 +37,7 @@ const (
 	yamlFieldReplicas           = "replicas:"
 	yamlFieldResources          = "resources:"
 	yamlFieldData               = "data:"
+	yamlFieldEnv                = "env:"
 	yamlFieldMetadata           = "metadata:"
 
 	tplReleaseNamespace   = "namespace: {{ default .Release.Namespace .Values.namespace }}"
@@ -136,6 +137,9 @@ func transformDeployment(obj *unstructured.Unstructured) (string, error) {
 
 	// Add imagePullSecrets
 	raw = addImagePullSecrets(raw)
+
+	// Inject extra env vars from .Values.extraEnvs
+	raw = injectExtraEnvs(raw)
 
 	return raw, nil
 }
@@ -542,6 +546,34 @@ func replaceWebhookNamespace(raw string) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// injectExtraEnvs inserts a Helm range block after every env: key of a
+// container, rendering additional env vars from .Values.extraEnvs. When the
+// map is empty the block renders to nothing, leaving the manifest unchanged.
+// Entries must not reuse names already present on the container or the API
+// server rejects the resulting duplicate env vars.
+func injectExtraEnvs(raw string) string {
+	lines := strings.Split(raw, "\n")
+	var result []string
+
+	for _, line := range lines {
+		result = append(result, line)
+
+		if strings.TrimSpace(line) != yamlFieldEnv {
+			continue
+		}
+
+		indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
+		result = append(result,
+			indent+"{{- range $key, $val := .Values.extraEnvs }}",
+			indent+"- name: {{ $key }}",
+			indent+"  value: {{ $val | quote }}",
+			indent+"{{- end }}",
+		)
+	}
+
+	return strings.Join(result, "\n")
 }
 
 // injectConfigMapValues replaces hardcoded data entries with Helm template

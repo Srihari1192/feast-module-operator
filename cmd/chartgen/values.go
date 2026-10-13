@@ -82,6 +82,12 @@ type Values struct {
 	// merged into the controller ConfigMap.
 	Config map[string]string `json:"config"`
 
+	// ExtraEnvs injects additional environment variables into the manager
+	// container. Keys are env var names (e.g. ODH_MODULE_OPERATOR_PLATFORM_TYPE),
+	// values are literal strings. Empty by default; entries must not reuse
+	// names already set on the container.
+	ExtraEnvs map[string]string `json:"extraEnvs" jsonschema:"nullable"`
+
 	// UpgradeGates declares admin acknowledgment gates that block platform
 	// provisioning until an administrator explicitly acknowledges them.
 	// Empty by default; populated by the ODH operator when a breaking
@@ -141,9 +147,9 @@ func DefaultValues() Values {
 			Annotations: map[string]string{},
 		},
 		Config: map[string]string{
-			"platform-name":    "OpenDataHub",
 			"platform-version": "unknown",
 		},
+		ExtraEnvs:    map[string]string{},
 		UpgradeGates: map[string]string{},
 	}
 }

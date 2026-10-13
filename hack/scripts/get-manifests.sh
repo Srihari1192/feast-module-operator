@@ -31,7 +31,11 @@ print(digest.hexdigest())
 PY
 }
 
-if [[ "${ODH_PLATFORM_TYPE:-OpenDataHub}" == "OpenDataHub" ]]; then
+# ODH_PLATFORM_TYPE accepts the same friendly names as the Makefile
+# (odh | rhoai | managed-rhoai); the legacy value "OpenDataHub" is kept
+# for compatibility.
+platform_type="${ODH_PLATFORM_TYPE:-odh}"
+if [[ "${platform_type}" == "odh" || "${platform_type}" == "OpenDataHub" ]]; then
     echo "Downloading manifests for ODH"
     REPO_URL="https://github.com/opendatahub-io/feast"
     COMMIT_SHA="586a5f3d5923cb44c55b5f7a4c2912585e3cef0c"

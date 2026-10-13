@@ -33,8 +33,8 @@ import (
 const (
 	KeyManifestsPath   = "manifests-path"
 	KeyApplicationsNS  = "applications-namespace"
-	KeyPlatformName    = "platform-name"
 	KeyPlatformVersion = "platform-version"
+	KeyPlatformType    = "platform-type"
 
 	KeyMetricsBindAddr    = "controller.metrics.bind-address"
 	KeyHealthBindAddr     = "controller.health.bind-address"
@@ -48,7 +48,7 @@ const (
 	KeyDataRegistryEnabled = "data-registry-enabled"
 
 	DefaultApplicationsNS  = "opendatahub"
-	DefaultPlatformName    = "unknown"
+	DefaultPlatformType    = "unknown"
 	DefaultPlatformVersion = "unknown"
 
 	DefaultMetricsBindAddr    = ":8080"
@@ -90,7 +90,7 @@ var structuredExtensions = map[string]bool{
 type Config struct {
 	ManifestsPath         string           `mapstructure:"manifests-path"`
 	ApplicationsNamespace string           `mapstructure:"applications-namespace"`
-	PlatformName          string           `mapstructure:"platform-name"`
+	PlatformType          string           `mapstructure:"platform-type"`
 	PlatformVersion       string           `mapstructure:"platform-version"`
 	FeatureStoreEnabled   bool             `mapstructure:"feature-store-enabled"`
 	DataRegistryEnabled   bool             `mapstructure:"data-registry-enabled"`
@@ -132,7 +132,7 @@ type PprofConfig struct {
 // to 0.0.0.
 func (c *Config) Release() common.Release {
 	rel := common.Release{
-		Name: common.Platform(c.PlatformName),
+		Name: common.Platform(c.PlatformType),
 	}
 
 	if c.PlatformVersion != "" {
@@ -191,7 +191,7 @@ func LoadFromFS(fsys fs.FS) (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	v.SetDefault(KeyManifestsPath, "")
 	v.SetDefault(KeyApplicationsNS, DefaultApplicationsNS)
-	v.SetDefault(KeyPlatformName, DefaultPlatformName)
+	v.SetDefault(KeyPlatformType, DefaultPlatformType)
 	v.SetDefault(KeyPlatformVersion, DefaultPlatformVersion)
 	v.SetDefault(KeyFeatureStoreEnabled, DefaultFeatureStoreEnabled)
 	v.SetDefault(KeyDataRegistryEnabled, DefaultDataRegistryEnabled)
