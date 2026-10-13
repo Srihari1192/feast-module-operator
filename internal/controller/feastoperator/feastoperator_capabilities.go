@@ -39,8 +39,7 @@ import (
 )
 
 const (
-	capabilitiesConfigMapName      = "feast-capabilities-config"
-	capabilitiesConfigMapFinalizer = "components.platform.opendatahub.io/feast-capabilities"
+	capabilitiesConfigMapName = "feast-capabilities-config"
 
 	capabilitiesKeyFeatureStoreEnabled = "featureStoreEnabled"
 	capabilitiesKeyDataRegistryEnabled = "dataRegistryEnabled"
@@ -48,6 +47,10 @@ const (
 
 	capabilitiesHashAnnotation = "feast.dev/capabilities-hash"
 )
+
+// CapabilitiesConfigMapFinalizer prevents deletion until the controller can
+// release the ConfigMap and recreate it through normal reconciliation.
+const CapabilitiesConfigMapFinalizer = "components.platform.opendatahub.io/feast-capabilities"
 
 func boolString(value bool) string {
 	return strconv.FormatBool(value)
@@ -82,15 +85,16 @@ func (m *Module) reconcileCapabilitiesConfigMap(ctx context.Context, rr *odhtype
 
 	op, err := controllerutil.CreateOrUpdate(ctx, rr.Client, cm, func() error {
 		if cm.DeletionTimestamp != nil {
-			// Let an explicit deletion finish, then recreate the ConfigMap on retry.
-			controllerutil.RemoveFinalizer(cm, capabilitiesConfigMapFinalizer)
+			// Let an explicit deletion finish. The owned-resource delete event
+			// schedules another reconcile, which recreates the ConfigMap.
+			controllerutil.RemoveFinalizer(cm, CapabilitiesConfigMapFinalizer)
 			return nil
 		}
 		if cm.Labels == nil {
 			cm.Labels = map[string]string{}
 		}
 		cm.Labels[labels.ODH.Component(componentName)] = labels.True
-		controllerutil.AddFinalizer(cm, capabilitiesConfigMapFinalizer)
+		controllerutil.AddFinalizer(cm, CapabilitiesConfigMapFinalizer)
 		cm.Data = map[string]string{
 			capabilitiesKeyFeatureStoreEnabled: boolString(fsEnabled),
 			capabilitiesKeyDataRegistryEnabled: boolString(drEnabled),
@@ -104,7 +108,11 @@ func (m *Module) reconcileCapabilitiesConfigMap(ctx context.Context, rr *odhtype
 		return fmt.Errorf("failed to reconcile capabilities ConfigMap: %w", err)
 	}
 	if cm.DeletionTimestamp != nil {
-		return fmt.Errorf("capabilities ConfigMap %s is being deleted; waiting to recreate it", capabilitiesConfigMapName)
+		log.V(1).Info("Capabilities ConfigMap deletion is in progress; waiting for the delete event to recreate it",
+			"configmap", capabilitiesConfigMapName,
+			"namespace", m.cfg.ApplicationsNamespace,
+		)
+		return nil
 	}
 
 	log.V(1).Info("Reconciled capabilities ConfigMap",

@@ -30,7 +30,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	componentApi "github.com/opendatahub-io/feast-module-operator/api/components/v1alpha1"
 	moduleconfig "github.com/opendatahub-io/feast-module-operator/pkg/config"
@@ -93,7 +95,7 @@ func NewReconciler(
 	}
 
 	r, err := reconciler.ReconcilerFor(mgr, &componentApi.FeastOperator{}).
-		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.ConfigMap{}, reconciler.WithPredicates(capabilitiesConfigMapWatchPredicate())).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
@@ -153,6 +155,28 @@ func NewReconciler(
 	return nil
 }
 
+// capabilitiesConfigMapWatchPredicate preserves the standard owned-resource
+// events and also observes the deletionTimestamp update. That update is needed
+// to release the ConfigMap finalizer; its subsequent delete event then queues
+// the reconcile that recreates the ConfigMap.
+func capabilitiesConfigMapWatchPredicate() predicate.Predicate {
+	return predicate.Or(
+		predicates.DefaultPredicate,
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				if e.ObjectOld == nil || e.ObjectNew == nil {
+					return false
+				}
+
+				oldDeletionTimestamp := e.ObjectOld.GetDeletionTimestamp()
+				newDeletionTimestamp := e.ObjectNew.GetDeletionTimestamp()
+				return (oldDeletionTimestamp == nil || oldDeletionTimestamp.IsZero()) &&
+					newDeletionTimestamp != nil && !newDeletionTimestamp.IsZero()
+			},
+		},
+	)
+}
+
 // cleanupClusterResources removes cluster-scoped resources (ClusterRoles, ClusterRoleBindings)
 // that cannot use ownerReferences for garbage collection.
 //
@@ -190,7 +214,7 @@ func (m *Module) cleanupClusterResources(ctx context.Context, rr *odhtypes.Recon
 		Namespace: m.cfg.ApplicationsNamespace,
 	}, cm)
 	if err == nil {
-		if controllerutil.RemoveFinalizer(cm, capabilitiesConfigMapFinalizer) {
+		if controllerutil.RemoveFinalizer(cm, CapabilitiesConfigMapFinalizer) {
 			if err := rr.Client.Update(ctx, cm); err != nil {
 				return fmt.Errorf("failed to remove finalizer from capabilities ConfigMap %s: %w", capabilitiesConfigMapName, err)
 			}

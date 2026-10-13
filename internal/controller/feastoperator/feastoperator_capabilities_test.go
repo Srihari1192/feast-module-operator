@@ -104,7 +104,7 @@ func TestReconcileCapabilitiesConfigMapCreatesConfigMap(t *testing.T) {
 	g.Expect(cm.Labels[labels.ODH.Component(componentName)]).To(Equal(labels.True))
 	g.Expect(cm.OwnerReferences).To(HaveLen(1))
 	g.Expect(cm.OwnerReferences[0].Name).To(Equal(componentApi.FeastOperatorInstanceName))
-	g.Expect(cm.Finalizers).To(ContainElement(capabilitiesConfigMapFinalizer))
+	g.Expect(cm.Finalizers).To(ContainElement(CapabilitiesConfigMapFinalizer))
 }
 
 func TestReconcileCapabilitiesConfigMapUpdatesExistingConfigMap(t *testing.T) {
@@ -136,7 +136,7 @@ func TestReconcileCapabilitiesConfigMapUpdatesExistingConfigMap(t *testing.T) {
 	}, cm)).To(Succeed())
 	g.Expect(cm.Data[capabilitiesKeyFeatureStoreEnabled]).To(Equal("false"))
 	g.Expect(cm.Data[capabilitiesKeyDataRegistryEnabled]).To(Equal("true"))
-	g.Expect(cm.Finalizers).To(ContainElement(capabilitiesConfigMapFinalizer))
+	g.Expect(cm.Finalizers).To(ContainElement(CapabilitiesConfigMapFinalizer))
 }
 
 func TestReconcileCapabilitiesConfigMapRecreatesDeletedConfigMap(t *testing.T) {
@@ -153,10 +153,10 @@ func TestReconcileCapabilitiesConfigMapRecreatesDeletedConfigMap(t *testing.T) {
 	cm := &corev1.ConfigMap{}
 	g.Expect(cl.Get(ctx, key, cm)).To(Succeed())
 	g.Expect(cl.Delete(ctx, cm)).To(Succeed())
-	g.Expect(m.reconcileCapabilitiesConfigMap(ctx, rr)).NotTo(Succeed())
+	g.Expect(m.reconcileCapabilitiesConfigMap(ctx, rr)).To(Succeed())
 	g.Expect(m.reconcileCapabilitiesConfigMap(ctx, rr)).To(Succeed())
 	g.Expect(cl.Get(ctx, key, cm)).To(Succeed())
-	g.Expect(cm.Finalizers).To(ContainElement(capabilitiesConfigMapFinalizer))
+	g.Expect(cm.Finalizers).To(ContainElement(CapabilitiesConfigMapFinalizer))
 }
 
 func TestReconcileCapabilitiesFromSpecOverridesEnv(t *testing.T) {

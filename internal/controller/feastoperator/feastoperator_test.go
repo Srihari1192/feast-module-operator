@@ -290,7 +290,7 @@ func TestCleanupClusterResourcesRunsEvenWhenCapabilitiesManaged(t *testing.T) {
 			Labels: map[string]string{
 				labels.ODH.Component(componentName): labels.True,
 			},
-			Finalizers: []string{capabilitiesConfigMapFinalizer},
+			Finalizers: []string{CapabilitiesConfigMapFinalizer},
 		},
 	}
 	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
