@@ -55,8 +55,7 @@ const (
 	annotationType         = "platform.opendatahub.io/type"
 	annotationVersion      = "platform.opendatahub.io/version"
 
-	operatorConfigMapName = "opendatahub-feast-config"
-	moduleCRDName         = "feastoperators.components.platform.opendatahub.io"
+	moduleCRDName = "feastoperators.components.platform.opendatahub.io"
 
 	// platformTypeEnvVar is the env var that carries the platform type on the
 	// manager Deployment (bound to the platform-type config key), injectable

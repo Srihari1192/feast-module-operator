@@ -1,5 +1,4 @@
-config:
-  platform-version: unknown
+config: {}
 extraEnvs: {}
 fullnameOverride: ""
 image:

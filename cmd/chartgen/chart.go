@@ -579,27 +579,38 @@ func injectExtraEnvs(raw string) string {
 // injectConfigMapValues replaces hardcoded data entries with Helm template
 // directives that merge .Values.config and .Values.imagePullSecret. Existing
 // key-value pairs under data: are dropped to avoid duplicate-key errors since
-// they are supplied via .Values.config at render time.
+// they are supplied via .Values.config at render time. When the source
+// ConfigMap has no data section at all, the directives are appended so the
+// render-time knobs are still honored (and the section stays absent when
+// both are empty).
 func injectConfigMapValues(raw string) string {
 	lines := strings.Split(raw, "\n")
 	var result []string
 	inData := false
+	hasData := false
+
+	dataDirectives := func(indent string) []string {
+		return []string{
+			indent + "{{- if or .Values.imagePullSecret .Values.config }}",
+			indent + "data:",
+			indent + "  {{- with .Values.imagePullSecret }}",
+			indent + "  imagePullSecret: {{ . }}",
+			indent + "  {{- end }}",
+			indent + "  {{- range $key, $val := .Values.config }}",
+			indent + "  {{ $key }}: {{ $val | quote }}",
+			indent + "  {{- end }}",
+			indent + "{{- end }}",
+		}
+	}
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
 		if trimmed == yamlFieldData {
 			inData = true
-			result = append(result, line)
+			hasData = true
 			indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
-			result = append(result,
-				indent+"  {{- with .Values.imagePullSecret }}",
-				indent+"  imagePullSecret: {{ . }}",
-				indent+"  {{- end }}",
-				indent+"  {{- range $key, $val := .Values.config }}",
-				indent+"  {{ $key }}: {{ $val | quote }}",
-				indent+"  {{- end }}",
-			)
+			result = append(result, dataDirectives(indent)...)
 			continue
 		}
 
@@ -612,6 +623,10 @@ func injectConfigMapValues(raw string) string {
 		}
 
 		result = append(result, line)
+	}
+
+	if !hasData {
+		result = append(result, dataDirectives("")...)
 	}
 
 	return strings.Join(result, "\n")

@@ -53,7 +53,7 @@ func newFoundationTests(suite *feastE2ETest) *foundationTests {
 		},
 		operatorCfgMap: &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      operatorConfigMapName,
+				Name:      feastoperatorcontroller.PlatformConfigCMName,
 				Namespace: suite.operatorNamespace,
 			},
 		},
@@ -99,9 +99,14 @@ func (ft *foundationTests) testModuleCRDInstalled(t *testing.T) {
 func (ft *foundationTests) testOperatorConfigMap(t *testing.T) {
 	g := NewWithT(t)
 
-	g.Eventually(k.Get(ft.operatorCfgMap)).WithContext(ctx).WithTimeout(timeout).WithPolling(interval).Should(
-		jq.Match(`.data."%s" != ""`, moduleconfig.KeyPlatformVersion),
-	)
+	// The chart deploys the operator config ConfigMap under the well-known
+	// platform name (odh-data-config) so the platform operator can merge
+	// its managed keys into it. The platformVersion key itself is
+	// platform-managed and must not be shipped by the module.
+	g.Eventually(k.Get(ft.operatorCfgMap)).WithContext(ctx).WithTimeout(timeout).WithPolling(interval).Should(And(
+		jq.Match(`.metadata.name == "%s"`, feastoperatorcontroller.PlatformConfigCMName),
+		jq.Match(`.data."%s" == null`, moduleconfig.KeyPlatformVersion),
+	))
 }
 
 // testPlatformManifests validates the platform type chain end to end: the
@@ -199,24 +204,20 @@ func (ft *foundationTests) testDeploymentsAvailable(t *testing.T) {
 func (ft *foundationTests) testReleaseStatus(t *testing.T) {
 	g := NewWithT(t)
 
-	// Emulate the ODH platform operator: publish the platform version in the
-	// applications namespace. The controller watches this ConfigMap, so its
-	// creation triggers a reconcile and the version handshake records the
-	// platform release in the FeastOperator status.
-	platformCM := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      feastoperatorcontroller.PlatformConfigCMName,
-			Namespace: ft.operatorNamespace,
-		},
-		Data: map[string]string{
-			feastoperatorcontroller.PlatformVersionKey: e2ePlatformVersion,
-		},
+	// Emulate the ODH platform operator: set the platform version on the
+	// operator config ConfigMap deployed by the chart. The controller
+	// watches this ConfigMap, so the update triggers a reconcile and the
+	// version handshake records the platform release in the FeastOperator
+	// status.
+	platformCM := &corev1.ConfigMap{}
+	g.Expect(k8sClient.Get(ctx, client.ObjectKey{
+		Name:      feastoperatorcontroller.PlatformConfigCMName,
+		Namespace: ft.operatorNamespace,
+	}, platformCM)).To(Succeed())
+	platformCM.Data = map[string]string{
+		feastoperatorcontroller.PlatformVersionKey: e2ePlatformVersion,
 	}
-	err := k8sClient.Create(ctx, platformCM)
-	g.ExpectWithOffset(1, err).To(SatisfyAny(Succeed(), MatchError(k8serr.IsAlreadyExists)))
-	t.Cleanup(func() {
-		_ = k8sClient.Delete(ctx, platformCM)
-	})
+	g.Expect(k8sClient.Update(ctx, platformCM)).To(Succeed())
 
 	g.Eventually(k.Get(ft.module)).WithContext(ctx).WithTimeout(timeout).WithPolling(interval).Should(And(
 		jq.Match(`.status.releases | length > 0`),

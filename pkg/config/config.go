@@ -33,7 +33,7 @@ import (
 const (
 	KeyManifestsPath   = "manifests-path"
 	KeyApplicationsNS  = "applications-namespace"
-	KeyPlatformVersion = "platform-version"
+	KeyPlatformVersion = "platformVersion"
 	KeyPlatformType    = "platform-type"
 
 	KeyMetricsBindAddr    = "controller.metrics.bind-address"
@@ -91,7 +91,7 @@ type Config struct {
 	ManifestsPath         string           `mapstructure:"manifests-path"`
 	ApplicationsNamespace string           `mapstructure:"applications-namespace"`
 	PlatformType          string           `mapstructure:"platform-type"`
-	PlatformVersion       string           `mapstructure:"platform-version"`
+	PlatformVersion       string           `mapstructure:"platformVersion"`
 	FeatureStoreEnabled   bool             `mapstructure:"feature-store-enabled"`
 	DataRegistryEnabled   bool             `mapstructure:"data-registry-enabled"`
 	Controller            ControllerConfig `mapstructure:"controller"`
@@ -209,6 +209,14 @@ func bindEnv(v *viper.Viper) error {
 	v.SetEnvPrefix(EnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 	v.AutomaticEnv()
+
+	// platformVersion needs an explicit env var name: the key is camelCase
+	// (matching the ConfigMap data key created by the platform operator),
+	// so the automatic replacer would derive ODH_MODULE_OPERATOR_
+	// PLATFORMVERSION without the underscore.
+	if err := v.BindEnv(KeyPlatformVersion, "ODH_MODULE_OPERATOR_PLATFORM_VERSION"); err != nil {
+		return fmt.Errorf("binding env for key %s: %w", KeyPlatformVersion, err)
+	}
 
 	// Explicit BindEnv so Unmarshal picks up env vars.
 	// AutomaticEnv only works with Get(), not Unmarshal().

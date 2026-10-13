@@ -109,5 +109,5 @@ spec:
       - emptyDir: {}
         name: manifests
       - configMap:
-          name: opendatahub-feast-config
+          name: odh-data-config
         name: config

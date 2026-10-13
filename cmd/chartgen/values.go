@@ -146,9 +146,7 @@ func DefaultValues() Values {
 		ServiceAccount: ServiceAccountSpec{
 			Annotations: map[string]string{},
 		},
-		Config: map[string]string{
-			"platform-version": "unknown",
-		},
+		Config:       map[string]string{},
 		ExtraEnvs:    map[string]string{},
 		UpgradeGates: map[string]string{},
 	}
