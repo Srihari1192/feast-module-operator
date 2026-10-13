@@ -141,8 +141,8 @@ func runTestMain(m *testing.M) int {
 	// Loading through moduleconfig.Load exercises the same env binding the
 	// real operator uses, so an injected platform type genuinely drives
 	// manifest selection.
-	os.Setenv("ODH_MODULE_OPERATOR_MANIFESTS_PATH", support.MustProjectFile("config", "manifests"))
-	os.Setenv("ODH_MODULE_OPERATOR_APPLICATIONS_NAMESPACE", testNamespace)
+	_ = os.Setenv("ODH_MODULE_OPERATOR_MANIFESTS_PATH", support.MustProjectFile("config", "manifests"))
+	_ = os.Setenv("ODH_MODULE_OPERATOR_APPLICATIONS_NAMESPACE", testNamespace)
 
 	// Emulate the ODH platform operator: it publishes the platform version
 	// in a ConfigMap in the applications namespace; the operator records it
