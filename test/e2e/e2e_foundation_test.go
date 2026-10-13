@@ -214,9 +214,10 @@ func (ft *foundationTests) testReleaseStatus(t *testing.T) {
 		Name:      feastoperatorcontroller.PlatformConfigCMName,
 		Namespace: ft.operatorNamespace,
 	}, platformCM)).To(Succeed())
-	platformCM.Data = map[string]string{
-		feastoperatorcontroller.PlatformVersionKey: e2ePlatformVersion,
+	if platformCM.Data == nil {
+		platformCM.Data = map[string]string{}
 	}
+	platformCM.Data[feastoperatorcontroller.PlatformVersionKey] = e2ePlatformVersion
 	g.Expect(k8sClient.Update(ctx, platformCM)).To(Succeed())
 
 	g.Eventually(k.Get(ft.module)).WithContext(ctx).WithTimeout(timeout).WithPolling(interval).Should(And(

@@ -567,7 +567,7 @@ func injectExtraEnvs(raw string) string {
 		indent := line[:len(line)-len(strings.TrimLeft(line, " "))]
 		result = append(result,
 			indent+"{{- range $key, $val := .Values.extraEnvs }}",
-			indent+"- name: {{ $key }}",
+			indent+"- name: {{ $key | quote }}",
 			indent+"  value: {{ $val | quote }}",
 			indent+"{{- end }}",
 		)

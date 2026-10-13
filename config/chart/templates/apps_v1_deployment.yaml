@@ -23,7 +23,7 @@ spec:
         - operator
         env:
         {{- range $key, $val := .Values.extraEnvs }}
-        - name: {{ $key }}
+        - name: {{ $key | quote }}
           value: {{ $val | quote }}
         {{- end }}
         - name: ODH_MODULE_OPERATOR_CONFIGURATION_PATH
