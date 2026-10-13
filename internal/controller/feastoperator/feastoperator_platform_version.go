@@ -32,8 +32,8 @@ import (
 
 const (
 	// PlatformConfigCMName is the ConfigMap created by the ODH platform operator
-	// containing the platformVersion key. Format: odh-<modulename>-config.
-	PlatformConfigCMName = "odh-feastoperator-config"
+	// containing the platformVersion key.
+	PlatformConfigCMName = "odh-data-config"
 
 	// PlatformVersionKey is the data key in the platform config ConfigMap.
 	PlatformVersionKey = "platformVersion"
@@ -44,7 +44,7 @@ const (
 )
 
 // reconcilePlatformVersion implements the platform version handshake protocol.
-// It reads the platform version from the odh-feastoperator-config ConfigMap,
+// It reads the platform version from the odh-data-config ConfigMap,
 // compares it with the version recorded in status.releases[name="platform"],
 // performs any upgrade work if they differ, and writes the new version to status.
 func (m *Module) reconcilePlatformVersion(ctx context.Context, rr *odhtypes.ReconciliationRequest) error {
@@ -93,7 +93,7 @@ func (m *Module) reconcilePlatformVersion(ctx context.Context, rr *odhtypes.Reco
 	return nil
 }
 
-// getPlatformVersion reads the platformVersion from the odh-feastoperator-config ConfigMap.
+// getPlatformVersion reads the platformVersion from the odh-data-config ConfigMap.
 func (m *Module) getPlatformVersion(ctx context.Context, cl client.Client) (string, error) {
 	cm := &corev1.ConfigMap{}
 	err := cl.Get(ctx, client.ObjectKey{
